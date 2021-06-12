@@ -38,7 +38,7 @@ fn main() -> anyhow::Result<()> {
             // Poll for tick rate duration and check if there is an Event available
             let timeout = tick_rate
                 .checked_sub(last_tick.elapsed())
-                .unwrap_or(Duration::from_secs(0));
+                .unwrap_or_else(|| Duration::from_secs(0));
             if let Ok(true) = event::poll(timeout) {
                 if let Ok(Event::Key(key)) = read() {
                     tx.send(AppEvent::Input(key)).unwrap();
@@ -53,7 +53,8 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    let mut timer = Timer::new(100);
+    // let mut timer = Timer::new(60 * 18 + 11);
+    let mut timer = Timer::new(3600 * 29 + 60 * 18 + 41);
 
     loop {
         terminal.draw(|f| {
@@ -69,9 +70,7 @@ fn main() -> anyhow::Result<()> {
                 .margin(2)
                 .constraints([Constraint::Percentage(100)].as_ref())
                 .split(f.size());
-            let (h, m, s) = timer.hms();
-            let paragraph = Paragraph::new(format!("{:02}:{:02}:{:02}", h, m, s))
-                .alignment(tui::layout::Alignment::Center);
+            let paragraph = Paragraph::new(timer.text()).alignment(tui::layout::Alignment::Center);
             f.render_widget(paragraph, chunks[0]);
         })?;
 
