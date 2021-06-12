@@ -1,16 +1,28 @@
 use crate::digit::digit;
 use tui::text::Spans;
 pub struct Timer {
+    is_paused: bool,
     remain: u32, // in seconds
 }
 
 impl Timer {
     pub fn new(remain: u32) -> Timer {
-        Timer { remain }
+        Timer {
+            is_paused: false,
+            remain,
+        }
     }
 
     pub fn tick(&mut self) {
         self.remain -= 1;
+    }
+
+    pub fn toggle(&mut self) {
+        self.is_paused = !self.is_paused;
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.is_paused
     }
 
     pub fn text(&self) -> Vec<Spans> {

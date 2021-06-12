@@ -13,13 +13,39 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use tui::layout::{Constraint, Layout};
-use tui::widgets::{Block, Borders, Paragraph};
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use tui::widgets::{Block, Borders, Clear, Paragraph};
 use tui::{backend::CrosstermBackend, Terminal};
 
 enum AppEvent<I> {
     Input(I),
     Tick,
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
 
 fn main() -> anyhow::Result<()> {
@@ -53,8 +79,7 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    // let mut timer = Timer::new(60 * 18 + 11);
-    let mut timer = Timer::new(3600 * 29 + 60 * 18 + 41);
+    let mut timer = Timer::new(10);
 
     loop {
         terminal.draw(|f| {
@@ -62,16 +87,30 @@ fn main() -> anyhow::Result<()> {
 
             // Surrounding block
             let block = Block::default().borders(Borders::ALL);
-            f.render_widget(block, size);
+            f.render_widget(block.clone(), size);
 
             // Body
             let chunks = Layout::default()
-                .direction(tui::layout::Direction::Vertical)
+                .direction(Direction::Vertical)
                 .margin(2)
                 .constraints([Constraint::Percentage(100)].as_ref())
                 .split(f.size());
-            let paragraph = Paragraph::new(timer.text()).alignment(tui::layout::Alignment::Center);
-            f.render_widget(paragraph, chunks[0]);
+            let paragraph = Paragraph::new(timer.text()).alignment(Alignment::Center);
+            f.render_widget(paragraph.clone(), chunks[0]);
+
+            let area = centered_rect(50, 50, size);
+            let pause_message = Paragraph::new("⏸ Paused")
+                .block(block.clone())
+                .alignment(Alignment::Center);
+            if timer.is_paused() {
+                f.render_widget(Clear, area);
+                f.render_widget(block, area);
+                f.render_widget(pause_message, area);
+            } else {
+                f.render_widget(Clear, area);
+                f.render_widget(block, size);
+                f.render_widget(paragraph.clone(), chunks[0]);
+            }
         })?;
 
         match rx.recv()? {
@@ -81,10 +120,15 @@ fn main() -> anyhow::Result<()> {
                     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
                     break;
                 }
+                KeyCode::Char('p') => {
+                    timer.toggle();
+                }
                 _ => {}
             },
             AppEvent::Tick => {
-                timer.tick();
+                if !timer.is_paused() {
+                    timer.tick();
+                }
             }
         }
     }
