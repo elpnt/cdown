@@ -4,6 +4,7 @@ pub fn center_area(r: Rect, content_height: u16, content_width: u16) -> Rect {
     let mh = margin(r.height, content_height);
     let mw = margin(r.width, content_width);
     let area = Layout::default()
+        .horizontal_margin(1)
         .direction(Direction::Vertical)
         .constraints(
             [
