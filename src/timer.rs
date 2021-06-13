@@ -2,19 +2,19 @@ use crate::digit::digit;
 use tui::text::Spans;
 pub struct Timer {
     is_paused: bool,
-    remain: u32, // in seconds
+    duration: u64, // in seconds
 }
 
 impl Timer {
-    pub fn new(remain: u32) -> Timer {
+    pub fn new(duration: u64) -> Timer {
         Timer {
             is_paused: false,
-            remain,
+            duration,
         }
     }
 
     pub fn tick(&mut self) {
-        self.remain -= 1;
+        self.duration -= 1;
     }
 
     pub fn toggle(&mut self) {
@@ -23,6 +23,10 @@ impl Timer {
 
     pub fn is_paused(&self) -> bool {
         self.is_paused
+    }
+
+    pub fn duration(&self) -> u64 {
+        self.duration
     }
 
     pub fn text(&self) -> Vec<Spans> {
@@ -41,7 +45,7 @@ impl Timer {
         lines.into_iter().map(Spans::from).collect::<Vec<Spans>>()
     }
 
-    fn push_number(&self, num: u32, lines: &mut Vec<String>, is_hour: bool) {
+    fn push_number(&self, num: u64, lines: &mut Vec<String>, is_hour: bool) {
         let num = if is_hour {
             num.to_string()
         } else {
@@ -76,10 +80,10 @@ impl Timer {
         }
     }
 
-    fn hms(&self) -> (u32, u32, u32) {
-        let h = self.remain / 3600;
-        let m = (self.remain % 3600) / 60;
-        let s = self.remain % 60;
+    fn hms(&self) -> (u64, u64, u64) {
+        let h = self.duration / 3600;
+        let m = (self.duration % 3600) / 60;
+        let s = self.duration % 60;
         (h, m, s)
     }
 }
