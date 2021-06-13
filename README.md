@@ -2,6 +2,8 @@
 
 `cdown` is a timer TUI app purely written in Rust.
 
+![demo](https://github.com/elpnt/cdown/blob/screenshot/demo.gif)
+
 # Usage
 
 ```sh
