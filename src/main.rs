@@ -31,7 +31,7 @@ enum AppEvent<I> {
 #[derive(StructOpt)]
 #[structopt(
     name = "cdown",
-    about = r"
+    about = r"Simple TUI timer app
 
 Hotkeys:
     p       Pause/Resume
@@ -46,7 +46,7 @@ struct Opt {
     #[structopt(short)]
     border: bool,
 
-    /// Set the foreground color (e.g. `cdown 4m33s -c cyan`)
+    /// Set the foreground color
     #[structopt(short, default_value = "white")]
     color: String,
 
