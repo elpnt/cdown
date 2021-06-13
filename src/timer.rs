@@ -1,5 +1,6 @@
 use crate::digit::digit;
 use tui::text::Spans;
+
 pub struct Timer {
     pub is_paused: bool,
     pub duration: u64, // in seconds
