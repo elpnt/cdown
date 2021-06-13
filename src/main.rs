@@ -1,19 +1,22 @@
 mod digit;
 mod timer;
-
-use timer::Timer;
+mod utils;
 
 use std::io;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use structopt::StructOpt;
+use timer::Timer;
+use utils::center_area;
 
 use crossterm::event::{self, read, Event, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use tui::layout::Alignment;
+use tui::style::{Color, Style};
 use tui::widgets::{Block, Borders, Clear, Paragraph};
 use tui::{backend::CrosstermBackend, Terminal};
 
@@ -22,35 +25,14 @@ enum AppEvent<I> {
     Tick,
 }
 
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
+#[derive(StructOpt)]
+#[structopt(name = "countdown", about = "Simple timer app on terminal")]
+struct Opt {
+    #[structopt(default_value = "1m")]
+    time: String,
 }
 
 fn main() -> anyhow::Result<()> {
-    enable_raw_mode()?;
-
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
@@ -79,8 +61,18 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    let mut timer = Timer::new(10);
+    let opt = Opt::from_args();
+    let duration: Duration = opt
+        .time
+        .parse::<humantime::Duration>()
+        .unwrap_or_else(|e| {
+            println!("Error: {}", e);
+            std::process::exit(1)
+        })
+        .into();
+    let mut timer = Timer::new(duration.as_secs());
 
+    enable_raw_mode()?;
     loop {
         terminal.draw(|f| {
             let size = f.size();
@@ -89,36 +81,35 @@ fn main() -> anyhow::Result<()> {
             let block = Block::default().borders(Borders::ALL);
             f.render_widget(block.clone(), size);
 
-            // Body
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(2)
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .split(f.size());
-            let paragraph = Paragraph::new(timer.text()).alignment(Alignment::Center);
-            f.render_widget(paragraph.clone(), chunks[0]);
+            // Timer display
+            let display_area = center_area(size, 5, size.width);
+            let timer_text = Paragraph::new(timer.text()).alignment(Alignment::Center);
 
-            let area = centered_rect(50, 50, size);
-            let pause_message = Paragraph::new("⏸ Paused")
+            // Paused popout
+            let popout_area = center_area(size, 3, 12);
+            let pause_message = Paragraph::new(" ⏸ Paused ")
                 .block(block.clone())
+                .style(Style::default().fg(Color::White).bg(Color::DarkGray))
                 .alignment(Alignment::Center);
+
             if timer.is_paused() {
-                f.render_widget(Clear, area);
-                f.render_widget(block, area);
-                f.render_widget(pause_message, area);
-            } else {
-                f.render_widget(Clear, area);
+                f.render_widget(Clear, popout_area);
                 f.render_widget(block, size);
-                f.render_widget(paragraph.clone(), chunks[0]);
+                f.render_widget(timer_text, display_area);
+                f.render_widget(pause_message, popout_area);
+            } else {
+                f.render_widget(Clear, popout_area);
+                f.render_widget(block, size);
+                f.render_widget(timer_text, display_area);
             }
         })?;
 
         match rx.recv()? {
             AppEvent::Input(event) => match event.code {
-                KeyCode::Char('q') => {
+                KeyCode::Char('q') | KeyCode::Esc => {
                     disable_raw_mode()?;
                     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-                    break;
+                    std::process::exit(0);
                 }
                 KeyCode::Char('p') => {
                     timer.toggle();
@@ -127,6 +118,12 @@ fn main() -> anyhow::Result<()> {
             },
             AppEvent::Tick => {
                 if !timer.is_paused() {
+                    if timer.duration() == 0 {
+                        disable_raw_mode()?;
+                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                        break;
+                    }
+
                     timer.tick();
                 }
             }
