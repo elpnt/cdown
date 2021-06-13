@@ -1,6 +1,8 @@
+mod color;
 mod digit;
 mod timer;
 mod utils;
+use color::*;
 use timer::Timer;
 use tui::widgets::BorderType;
 use utils::center_area;
@@ -27,7 +29,15 @@ enum AppEvent<I> {
 }
 
 #[derive(StructOpt)]
-#[structopt(name = "countdown", about = "Simple timer app on terminal")]
+#[structopt(
+    name = "cdown",
+    about = r"
+
+Hotkeys:
+    p       Pause/Resume
+    q/ESC   Quit
+"
+)]
 struct Opt {
     #[structopt(default_value = "3min")]
     time: String,
@@ -35,6 +45,14 @@ struct Opt {
     /// Display a box border around the timer
     #[structopt(short)]
     border: bool,
+
+    /// Set the foreground color (e.g. `cdown 4m33s -c cyan`)
+    #[structopt(short, default_value = "white")]
+    color: String,
+
+    /// Prints list of available colors
+    #[structopt(short, long)]
+    list_colors: bool,
 }
 
 fn preexit(terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
@@ -45,6 +63,15 @@ fn preexit(terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
+
+    if opt.list_colors {
+        println!("Available colors are:");
+        for &c in COLOR_NAMES.iter() {
+            println!("  - {}", c);
+        }
+        std::process::exit(0);
+    }
+
     enable_raw_mode()?;
 
     let mut stdout = io::stdout();
@@ -82,11 +109,12 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or_else(|e| {
             preexit(&mut terminal);
             println!("Error: {}", e);
-            std::process::exit(1)
+            std::process::exit(1);
         })
         .into();
     let mut timer = Timer::new(duration.as_secs());
 
+    let fg_color = color(&opt.color);
     terminal.clear()?;
 
     loop {
@@ -102,7 +130,9 @@ fn main() -> anyhow::Result<()> {
 
             // Timer display
             let display_area = center_area(size, 5, size.width);
-            let timer_text = Paragraph::new(timer.text()).alignment(Alignment::Center);
+            let timer_text = Paragraph::new(timer.text())
+                .style(Style::default().fg(fg_color))
+                .alignment(Alignment::Center);
 
             // Paused popout
             let popout_area = center_area(size, 3, 12);
@@ -144,7 +174,6 @@ fn main() -> anyhow::Result<()> {
                         preexit(&mut terminal);
                         break;
                     }
-
                     timer.tick();
                 }
             }
