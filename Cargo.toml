@@ -10,5 +10,6 @@ edition = "2018"
 anyhow = "1.0"
 chrono = "0.4"
 humantime = "2.1"
+structopt = "0.3"
 crossterm = "0.19"
 tui = { version = "0.15", features = ["crossterm"] }
