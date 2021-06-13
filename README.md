@@ -1,6 +1,6 @@
 # cdown
 
-`cdown` is a timer TUI app purely written in Rust.
+`cdown` is a cross-platform TUI timer app purely written in Rust.
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/39664774/121809504-fb1c5c80-cc97-11eb-821a-fdfe4b98203f.gif" alt="demo" width="600">
