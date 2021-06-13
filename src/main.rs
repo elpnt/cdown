@@ -1,20 +1,21 @@
 mod digit;
 mod timer;
 mod utils;
+use timer::Timer;
+use tui::widgets::BorderType;
+use utils::center_area;
 
-use std::io;
+use std::io::{self, Stdout};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
-use structopt::StructOpt;
-use timer::Timer;
-use utils::center_area;
 
 use crossterm::event::{self, read, Event, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
+use structopt::StructOpt;
 use tui::layout::Alignment;
 use tui::style::{Color, Style};
 use tui::widgets::{Block, Borders, Clear, Paragraph};
@@ -28,13 +29,27 @@ enum AppEvent<I> {
 #[derive(StructOpt)]
 #[structopt(name = "countdown", about = "Simple timer app on terminal")]
 struct Opt {
-    #[structopt(default_value = "1m")]
+    #[structopt(default_value = "3min")]
     time: String,
+
+    /// Display a box border around the timer
+    #[structopt(short)]
+    border: bool,
+}
+
+fn preexit(terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
+    disable_raw_mode().unwrap();
+    execute!(terminal.backend_mut(), LeaveAlternateScreen).unwrap();
+    terminal.show_cursor().unwrap();
 }
 
 fn main() -> anyhow::Result<()> {
+    let opt = Opt::from_args();
+    enable_raw_mode()?;
+
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
+
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -61,24 +76,28 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    let opt = Opt::from_args();
     let duration: Duration = opt
         .time
         .parse::<humantime::Duration>()
         .unwrap_or_else(|e| {
+            preexit(&mut terminal);
             println!("Error: {}", e);
             std::process::exit(1)
         })
         .into();
     let mut timer = Timer::new(duration.as_secs());
 
-    enable_raw_mode()?;
+    terminal.clear()?;
+
     loop {
         terminal.draw(|f| {
             let size = f.size();
 
             // Surrounding block
-            let block = Block::default().borders(Borders::ALL);
+            let mut block = Block::default();
+            if opt.border {
+                block = block.borders(Borders::ALL);
+            }
             f.render_widget(block.clone(), size);
 
             // Timer display
@@ -88,14 +107,18 @@ fn main() -> anyhow::Result<()> {
             // Paused popout
             let popout_area = center_area(size, 3, 12);
             let pause_message = Paragraph::new(" ⏸ Paused ")
-                .block(block.clone())
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Thick),
+                )
                 .style(Style::default().fg(Color::White).bg(Color::DarkGray))
                 .alignment(Alignment::Center);
 
-            if timer.is_paused() {
-                f.render_widget(Clear, popout_area);
+            if timer.is_paused {
                 f.render_widget(block, size);
                 f.render_widget(timer_text, display_area);
+                f.render_widget(Clear, popout_area);
                 f.render_widget(pause_message, popout_area);
             } else {
                 f.render_widget(Clear, popout_area);
@@ -107,8 +130,7 @@ fn main() -> anyhow::Result<()> {
         match rx.recv()? {
             AppEvent::Input(event) => match event.code {
                 KeyCode::Char('q') | KeyCode::Esc => {
-                    disable_raw_mode()?;
-                    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                    preexit(&mut terminal);
                     std::process::exit(0);
                 }
                 KeyCode::Char('p') => {
@@ -117,10 +139,9 @@ fn main() -> anyhow::Result<()> {
                 _ => {}
             },
             AppEvent::Tick => {
-                if !timer.is_paused() {
-                    if timer.duration() == 0 {
-                        disable_raw_mode()?;
-                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                if !timer.is_paused {
+                    if timer.duration == 0 {
+                        preexit(&mut terminal);
                         break;
                     }
 

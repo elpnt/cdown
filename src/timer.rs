@@ -1,8 +1,9 @@
 use crate::digit::digit;
 use tui::text::Spans;
 pub struct Timer {
-    is_paused: bool,
-    duration: u64, // in seconds
+    pub is_paused: bool,
+    pub duration: u64, // in seconds
+    show_hour: bool,
 }
 
 impl Timer {
@@ -10,6 +11,7 @@ impl Timer {
         Timer {
             is_paused: false,
             duration,
+            show_hour: duration >= 3600,
         }
     }
 
@@ -21,37 +23,24 @@ impl Timer {
         self.is_paused = !self.is_paused;
     }
 
-    pub fn is_paused(&self) -> bool {
-        self.is_paused
-    }
-
-    pub fn duration(&self) -> u64 {
-        self.duration
-    }
-
     pub fn text(&self) -> Vec<Spans> {
         let mut lines = vec![String::default(); 5];
         let (h, m, s) = self.hms();
-        // Show hours only when the first input time is 1hour or more
-        if h > 0 {
-            self.push_number(h, &mut lines, true);
+
+        if self.show_hour {
+            self.push_number(h, &mut lines);
             self.push_digit(':', &mut lines);
         }
-
-        self.push_number(m, &mut lines, false);
+        self.push_number(m, &mut lines);
         self.push_digit(':', &mut lines);
-        self.push_number(s, &mut lines, false);
+        self.push_number(s, &mut lines);
 
         lines.into_iter().map(Spans::from).collect::<Vec<Spans>>()
     }
 
-    fn push_number(&self, num: u64, lines: &mut Vec<String>, is_hour: bool) {
-        let num = if is_hour {
-            num.to_string()
-        } else {
-            format!("{:02}", num)
-        };
-        let mut chars = num.chars().peekable();
+    fn push_number(&self, num: u64, lines: &mut Vec<String>) {
+        let s = format!("{:02}", num);
+        let mut chars = s.chars().peekable();
         while let Some(ch) = chars.next() {
             self.push_digit(ch, lines);
             if chars.peek().is_some() {
