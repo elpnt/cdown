@@ -47,7 +47,7 @@ struct Opt {
     border: bool,
 
     /// Set the foreground color
-    #[structopt(short, default_value = "white")]
+    #[structopt(short, default_value = "lightblue")]
     color: String,
 
     /// Prints list of available colors
@@ -122,7 +122,7 @@ fn main() -> anyhow::Result<()> {
             let size = f.size();
 
             // Surrounding block
-            let mut block = Block::default();
+            let mut block = Block::default().style(Style::default().fg(fg_color));
             if opt.border {
                 block = block.borders(Borders::ALL);
             }
@@ -135,8 +135,8 @@ fn main() -> anyhow::Result<()> {
                 .alignment(Alignment::Center);
 
             // Paused popout
-            let popout_area = center_area(size, 3, 12);
-            let pause_message = Paragraph::new(" ⏸ Paused ")
+            let popout_area = center_area(size, 3, 11);
+            let pause_message = Paragraph::new(" ⏸ Pause ")
                 .block(
                     Block::default()
                         .borders(Borders::ALL)

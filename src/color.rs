@@ -42,6 +42,5 @@ pub fn color(input: &str) -> Color {
             return TUI_COLORS[i];
         }
     }
-    // if no matching, use white
-    White
+    LightBlue
 }
