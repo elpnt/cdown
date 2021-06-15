@@ -10,4 +10,4 @@ chrono = "0.4"
 humantime = "2.1"
 structopt = "0.3"
 crossterm = "0.19"
-tui = { version = "0.15", features = ["crossterm"] }
+tui = { version="0.15", default-features=false, features=["crossterm"] }
