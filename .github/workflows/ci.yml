@@ -1,0 +1,6 @@
+- uses: actions-rs/toolchain@v1
+  with:
+    profile: minimal
+    toolchain: stable
+
+- uses: Swatinem/rust-cache@v1
