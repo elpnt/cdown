@@ -30,3 +30,10 @@ OPTIONS:
 ARGS:
     <time>     [default: 3min]
 ```
+
+## Installation
+
+```sh
+> git clone https://github.com/elpnt/cdown.git
+> cargo install --path .
+```
