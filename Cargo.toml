@@ -1,8 +1,13 @@
 [package]
 name = "cdown"
 version = "0.1.0"
+description = "Simple TUI timer app purely written in Rust"
+homepage = "https://github.com/elpnt/cdown"
+repository = "https://github.com/elpnt/cdown"
+categories = ["tui", "terminal", "timer"]
 authors = ["elpnt <quantumular@gmail.com>"]
 edition = "2018"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0"
