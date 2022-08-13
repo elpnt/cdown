@@ -39,7 +39,7 @@ impl Timer {
         lines.into_iter().map(Spans::from).collect::<Vec<Spans>>()
     }
 
-    fn push_number(&self, num: u64, lines: &mut Vec<String>) {
+    fn push_number(&self, num: u64, lines: &mut [String]) {
         let s = format!("{:02}", num);
         let mut chars = s.chars().peekable();
         while let Some(ch) = chars.next() {
@@ -50,7 +50,7 @@ impl Timer {
         }
     }
 
-    fn push_digit(&self, ch: char, lines: &mut Vec<String>) {
+    fn push_digit(&self, ch: char, lines: &mut [String]) {
         for (i, &line) in digit(ch).iter().enumerate() {
             let mut s = String::default();
             for &v in line.iter() {
@@ -64,7 +64,7 @@ impl Timer {
         }
     }
 
-    fn push_space(&self, lines: &mut Vec<String>) {
+    fn push_space(&self, lines: &mut [String]) {
         for line in lines.iter_mut() {
             line.push(' ');
         }

@@ -161,7 +161,7 @@ fn main() -> anyhow::Result<()> {
             AppEvent::Input(event) => match event.code {
                 KeyCode::Char('q') | KeyCode::Esc => {
                     preexit(&mut terminal);
-                    std::process::exit(0);
+                    std::process::exit(1);
                 }
                 KeyCode::Char('p') => {
                     timer.toggle();
